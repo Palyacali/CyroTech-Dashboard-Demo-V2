@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>CyroTech | Management Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Michroma&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-abyssal: #050B12; --surface-slate: #0B1622; --cyro-cyan: #00E5FF;
+            --circuit-blue: #0072FF; --titanium-ash: #F2F5F7; --frost-gray: #A9B6C2;
+            --accent-glow: 0 0 18px rgba(0, 229, 255, 0.35); --font-primary: 'Michroma', sans-serif;
+        }
+        body { background: var(--bg-abyssal); color: var(--titanium-ash); font-family: var(--font-primary); letter-spacing: 0.08em; margin: 0; height: 100vh; overflow: hidden; }
+        .screen { display: none; width: 100%; height: 100%; justify-content: center; align-items: center; }
+        .screen.active { display: flex; }
+        
+        /* Auth */
+        .cyro-auth-card { background: var(--surface-slate); padding: 40px; border: 1px solid rgba(0,229,255,0.1); border-radius: 10px; width: 360px; text-align: center; box-shadow: var(--accent-glow); }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; background: #020508; border: 1px solid #1A2632; color: white; font-family: var(--font-primary); font-size: 10px; box-sizing: border-box; }
+        
+        /* Layout */
+        .cyro-app { display: flex; width: 100%; height: 100%; }
+        .cyro-sidebar { width: 260px; background: var(--surface-slate); border-right: 1px solid rgba(0,229,255,0.1); padding: 30px; display: flex; flex-direction: column; }
+        .nav-link { color: var(--frost-gray); text-decoration: none; font-size: 10px; margin: 15px 0; cursor: pointer; transition: 0.3s; padding: 10px; border-radius: 5px; }
+        .nav-link.active, .nav-link:hover { color: var(--cyro-cyan); background: rgba(0,229,255,0.05); text-shadow: var(--accent-glow); }
+        
+        /* Cards */
+        .cyro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px; width: 100%; }
+        .cyro-card { background: var(--surface-slate); padding: 25px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+        .cyro-card:hover { border-color: var(--cyro-cyan); box-shadow: var(--accent-glow); }
+        .stat-value { font-size: 24px; color: var(--cyro-cyan); margin: 10px 0; }
+        .label { font-size: 9px; color: var(--frost-gray); text-transform: uppercase; }
+        .log-terminal { background: #020508; border: 1px solid #112233; padding: 15px; font-family: monospace; font-size: 11px; color: #00ffaa; height: 120px; overflow-y: auto; margin-top: 30px; border-radius: 5px; }
+        
+        .cyro-btn { background: var(--circuit-blue); color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; font-family: var(--font-primary); font-size: 9px; transition: 0.2s; }
+        .cyro-btn:hover { background: var(--cyro-cyan); color: black; box-shadow: var(--accent-glow); letter-spacing: 0.15em; }
+    </style>
+</head>
+<body>
+
+    <div id="loginScreen" class="screen active">
+        <div class="cyro-auth-card">
+            <h2 style="letter-spacing: 0.2em;">CYROTECH</h2>
+            <div class="label" style="color: var(--cyro-cyan); margin-bottom: 20px;">The Rare Blue of Tech</div>
+            <input type="text" id="lUser" placeholder="IDENTIFICATION ID">
+            <input type="password" id="lPass" placeholder="SECURITY KEY">
+            <button class="cyro-btn" onclick="api.login()">INITIALIZE SESSION</button>
+            <p style="font-size: 9px; margin-top: 20px; color: var(--frost-gray);">OR <span onclick="ui.show('registerScreen')" style="color: var(--cyro-cyan); cursor:pointer;">REGISTER SYSTEM</span></p>
+        </div>
+    </div>
+
+    <div id="registerScreen" class="screen">
+        <div class="cyro-auth-card">
+            <h2>NEW INTEGRATION</h2>
+            <input type="text" id="rUser" placeholder="NEW ID">
+            <input type="password" id="rPass" placeholder="NEW KEY">
+            <select id="rRank">
+                <option value="Pilot">PILOT</option>
+                <option value="Hunter">HUNTER</option>
+                <option value="Overseer">OVERSEER</option>
+            </select>
+            <button class="cyro-btn" onclick="api.register()">SYNC IDENTITY</button>
+            <p onclick="ui.show('loginScreen')" style="font-size: 9px; cursor:pointer; margin-top:15px; color: var(--frost-gray);">BACK TO AUTH</p>
+        </div>
+    </div>
+
+    <div id="mainScreen" class="screen">
+        <div class="cyro-app">
+            <div class="cyro-sidebar">
+                <div style="font-size: 12px; margin-bottom: 40px; color: var(--cyro-cyan);">CYRO OS v1.0</div>
+                <div class="nav-link active" onclick="ui.nav('Overview', event)">CORE OVERVIEW</div>
+                <div class="nav-link" onclick="ui.nav('Assets', event)">GALAXY ASSETS</div>
+                <div class="nav-link" onclick="ui.nav('Security', event)">SECURITY LOGS</div>
+                <button class="cyro-btn" style="margin-top:auto; background:#441111;" onclick="location.reload()">TERMINATE</button>
+            </div>
+            <div class="cyro-main" style="flex:1; padding: 40px;">
+                <h2 id="userDisplay">WELCOME, OPERATOR</h2>
+                <div class="cyro-grid" id="contentGrid"></div>
+                <div class="log-terminal" id="termLog">> System Ready...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ui = {
+            currentRank: "NONE",
+            show: (id) => { 
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+            },
+            log: (msg) => {
+                const l = document.getElementById('termLog');
+                l.innerHTML += `<br>> ${msg}`;
+                l.scrollTop = l.scrollHeight;
+            },
+            nav: (sec, e) => {
+                ui.log(`Shifting navigation to ${sec}...`);
+                document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+                if(e) e.target.classList.add('active');
+                ui.render(sec);
+            },
+            render: (sec) => {
+                const grid = document.getElementById('contentGrid');
+                if(sec === 'Assets') {
+                    grid.innerHTML = `<div class="cyro-card" style="grid-column: span 3;"><div class="label">Fleet Status</div><div class="stat-value">3 UNITS ACTIVE</div><button class="cyro-btn" style="width:auto; padding:10px 20px;" onclick="ui.log('Scanning Nivalis...')">SCAN SECTOR</button></div>`;
+                } else if(sec === 'Security') {
+                    grid.innerHTML = `<div class="cyro-card" style="grid-column: span 3;"><div class="label">Firewall</div><div class="stat-value">STABLE</div><button class="cyro-btn" style="width:auto; padding:10px 20px;" onclick="ui.log('Threat logs purged.')">PURGE THREATS</button></div>`;
+                } else {
+                    grid.innerHTML = `
+                        <div class="cyro-card"><div class="label">Sync Rate</div><div class="stat-value">98.4%</div></div>
+                        <div class="cyro-card"><div class="label">Rank</div><div class="stat-value">${ui.currentRank.toUpperCase()}</div></div>
+                        <div class="cyro-card"><div class="label">Active Threats</div><div class="stat-value">0</div></div>`;
+                }
+            }
+        };
+
+        const api = {
+            async register() {
+                const user = { Username: rUser.value, Password: rPass.value, Rank: rRank.value };
+                const res = await fetch('/api/register', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(user)});
+                if(res.ok) { ui.log("Identity synced."); ui.show('loginScreen'); }
+            },
+            async login() {
+                const user = { Username: lUser.value, Password: lPass.value };
+                const res = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(user)});
+                if(res.ok) {
+                    const data = await res.json();
+                    ui.currentRank = data.rank;
+                    ui.show('mainScreen');
+                    ui.render('Overview');
+                    userDisplay.innerText = `WELCOME, ${data.username.toUpperCase()}`;
+                    ui.log(`Authorized as ${data.rank}.`);
+                } else { alert("ACCESS DENIED."); }
+            }
+        };
+    </script>
+</body>
+</html>

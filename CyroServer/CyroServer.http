@@ -1,0 +1,6 @@
+@CyroServer_HostAddress = http://localhost:5011
+
+GET {{CyroServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
