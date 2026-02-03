@@ -28,11 +28,9 @@ Sistemi yerel cihazınızda başlatmak için şu adımları izleyin:
 
 Depoyu Klonlayın:
 
-Bash
 git clone https://github.com/kullaniciadi/CyroDashboard.git
 Bağımlılıkları Yükleyin ve Başlatın:
 
-Bash
 cd CyroServer
 dotnet run
 Sisteme Erişin: Tarayıcınızdan http://localhost:5050 adresine gidin.
